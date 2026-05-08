@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { StockNameInput } from "@/components/StockNameInput";
 
 export default function NewTradePage() {
   const router = useRouter();
@@ -29,8 +30,7 @@ export default function NewTradePage() {
   const [quantity, setQuantity] = useState("");
   const [price, setPrice] = useState("");
   const [fee, setFee] = useState("");
-  const [reason, setReason] = useState("");
-  const [emotion, setEmotion] = useState("");
+  const [note, setNote] = useState("");
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -46,8 +46,7 @@ export default function NewTradePage() {
       quantity: Number(quantity),
       price: Number(price),
       fee: Number(fee) || 0,
-      reason: reason.trim(),
-      emotion: emotion.trim(),
+      note: note.trim(),
     });
     router.push("/");
   }
@@ -75,26 +74,20 @@ export default function NewTradePage() {
               />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label htmlFor="name">종목명 *</Label>
-                <Input
-                  id="name"
-                  placeholder="예: 삼성전자"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="symbol">종목코드</Label>
-                <Input
-                  id="symbol"
-                  placeholder="예: 005930"
-                  value={symbol}
-                  onChange={(e) => setSymbol(e.target.value)}
-                />
-              </div>
+            <div className="space-y-1.5">
+              <Label>종목명 *</Label>
+              <StockNameInput
+                name={name}
+                symbol={symbol}
+                onChange={(n, s) => {
+                  setName(n);
+                  setSymbol(s);
+                }}
+              />
+              <p className="text-xs text-muted-foreground">
+                입력하면 자동으로 검색됩니다. 목록에서 선택하면 종목코드가 함께
+                저장돼요.
+              </p>
             </div>
 
             <div className="space-y-1.5">
@@ -157,24 +150,13 @@ export default function NewTradePage() {
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="reason">매매 근거</Label>
+              <Label htmlFor="note">매매 근거 / 메모</Label>
               <Textarea
-                id="reason"
-                placeholder="왜 사고 / 팔았나요?"
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                rows={3}
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="emotion">감정 / 메모</Label>
-              <Textarea
-                id="emotion"
-                placeholder="당시 감정, 시장 분위기 등"
-                value={emotion}
-                onChange={(e) => setEmotion(e.target.value)}
-                rows={2}
+                id="note"
+                placeholder="왜 사고 / 팔았는지, 당시 시장 분위기와 감정 등 자유롭게 기록"
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                rows={5}
               />
             </div>
 

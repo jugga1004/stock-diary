@@ -9,8 +9,7 @@ export interface Trade {
   quantity: number;
   price: number;
   fee: number;
-  reason: string;
-  emotion: string;
+  note: string;
   createdAt: string;
 }
 
