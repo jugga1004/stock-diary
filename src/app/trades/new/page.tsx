@@ -10,9 +10,10 @@ export default function NewTradePage() {
     <TradeForm
       title="거래 추가"
       submitLabel="저장"
-      onSubmit={(input) => {
-        addTrade(input);
+      onSubmit={async (input) => {
+        await addTrade(input);
         router.push("/");
+        router.refresh();
       }}
     />
   );

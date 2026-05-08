@@ -11,6 +11,11 @@ import {
   getFeeConfig,
   saveFeeConfig,
 } from "@/lib/feeConfig";
+import {
+  addTrade,
+  clearLocalTrades,
+  getLocalTrades,
+} from "@/lib/storage";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,11 +32,50 @@ export default function SettingsPage() {
   const router = useRouter();
   const [config, setConfig] = useState<FeeConfig>(DEFAULT_FEE_CONFIG);
   const [mounted, setMounted] = useState(false);
+  const [localCount, setLocalCount] = useState(0);
+  const [importing, setImporting] = useState(false);
+  const [importedCount, setImportedCount] = useState(0);
 
   useEffect(() => {
     setMounted(true);
     setConfig(getFeeConfig());
+    setLocalCount(getLocalTrades().length);
   }, []);
+
+  async function handleImport() {
+    if (
+      !window.confirm(
+        `이 기기 브라우저에 저장된 ${localCount}건을 현재 계정으로 옮기시겠습니까? 옮긴 뒤 이 기기의 옛 데이터는 삭제됩니다.`,
+      )
+    )
+      return;
+    setImporting(true);
+    setImportedCount(0);
+    const trades = getLocalTrades();
+    let count = 0;
+    for (const t of trades) {
+      try {
+        await addTrade({
+          date: t.date,
+          name: t.name,
+          symbol: t.symbol,
+          type: t.type,
+          quantity: t.quantity,
+          price: t.price,
+          fee: t.fee,
+          note: t.note,
+        });
+        count++;
+        setImportedCount(count);
+      } catch {
+        // continue on individual failure
+      }
+    }
+    clearLocalTrades();
+    setLocalCount(0);
+    setImporting(false);
+    alert(`${count}건 가져오기 완료`);
+  }
 
   function pickBroker(broker: BrokerPreset) {
     if (broker === "custom") {
@@ -162,6 +206,33 @@ export default function SettingsPage() {
           <Button onClick={handleSave} className="w-full">
             저장
           </Button>
+
+          {localCount > 0 && (
+            <section className="border-t pt-6">
+              <h2 className="text-base font-semibold mb-2">
+                이 기기의 옛 데이터 가져오기
+              </h2>
+              <p className="text-xs text-muted-foreground mb-3">
+                DB 도입 전에 이 기기 브라우저에 저장되어 있던 거래{" "}
+                <span className="font-semibold">{localCount}건</span>이 있어요.
+                지금 로그인한 계정으로 옮기시겠어요? 옮기면 PC·폰 어디서든
+                이어서 보입니다.
+              </p>
+              {importing ? (
+                <Button disabled className="w-full">
+                  가져오는 중... ({importedCount}/{localCount})
+                </Button>
+              ) : (
+                <Button
+                  onClick={handleImport}
+                  variant="outline"
+                  className="w-full"
+                >
+                  {localCount}건 내 계정으로 옮기기
+                </Button>
+              )}
+            </section>
+          )}
         </CardContent>
       </Card>
     </main>

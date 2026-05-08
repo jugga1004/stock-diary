@@ -48,14 +48,26 @@ function formatRatio(n: number): string {
 export default function Home() {
   const [trades, setTrades] = useState<Trade[]>([]);
   const [mounted, setMounted] = useState(false);
+  const [userId, setUserId] = useState<string>("");
   const [prices, setPrices] = useState<Record<string, PriceData>>({});
   const [pricesLoading, setPricesLoading] = useState(false);
   const [lastFetchedAt, setLastFetchedAt] = useState<Date | null>(null);
 
   useEffect(() => {
     setMounted(true);
-    setTrades(getTrades());
+    getTrades().then(setTrades);
+    fetch("/api/auth/me", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((d: { user: { id: string } | null }) => {
+        if (d.user) setUserId(d.user.id);
+      })
+      .catch(() => {});
   }, []);
+
+  async function handleLogout() {
+    await fetch("/api/auth/logout", { method: "POST" });
+    window.location.href = "/login";
+  }
 
   const holdings = useMemo(
     () => computeHoldings(trades).filter((h) => h.totalQuantity > 0),
@@ -110,10 +122,11 @@ export default function Home() {
     );
   }
 
-  function handleDelete(id: string) {
+  async function handleDelete(id: string) {
     if (!window.confirm("정말 삭제하시겠습니까?")) return;
-    deleteTrade(id);
-    setTrades(getTrades());
+    await deleteTrade(id);
+    const next = await getTrades();
+    setTrades(next);
   }
 
   let totalEvalValue = 0;
@@ -131,18 +144,34 @@ export default function Home() {
 
   return (
     <main className="container mx-auto max-w-5xl p-4 md:p-6 space-y-6">
-      <header className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">📓 주식일기</h1>
-        <div className="flex items-center gap-2">
-          <Link href="/settings">
-            <Button variant="outline" size="sm">
-              설정
-            </Button>
-          </Link>
-          <Link href="/trades/new">
-            <Button>+ 거래 추가</Button>
-          </Link>
+      <header className="space-y-2">
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold">📓 주식일기</h1>
+          <div className="flex items-center gap-2">
+            <Link href="/settings">
+              <Button variant="outline" size="sm">
+                설정
+              </Button>
+            </Link>
+            <Link href="/trades/new">
+              <Button>+ 거래 추가</Button>
+            </Link>
+          </div>
         </div>
+        {userId && (
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span>
+              로그인: <span className="font-mono">{userId}</span>
+            </span>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="hover:underline"
+            >
+              로그아웃
+            </button>
+          </div>
+        )}
       </header>
 
       <section className="grid grid-cols-2 md:grid-cols-4 gap-3">

@@ -26,7 +26,7 @@ interface Props {
   initial?: Partial<TradeFormValues>;
   title: string;
   submitLabel: string;
-  onSubmit: (input: TradeFormValues) => void;
+  onSubmit: (input: TradeFormValues) => void | Promise<void>;
 }
 
 export function TradeForm({ initial, title, submitLabel, onSubmit }: Props) {
@@ -71,22 +71,29 @@ export function TradeForm({ initial, title, submitLabel, onSubmit }: Props) {
     setFee(feeBreakdown.total > 0 ? String(feeBreakdown.total) : "");
   }, [feeBreakdown.total, feeEdited]);
 
-  function handleSubmit(e: React.FormEvent) {
+  const [submitting, setSubmitting] = useState(false);
+
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim() || !quantity || !price) {
       alert("종목명, 수량, 단가는 필수입니다");
       return;
     }
-    onSubmit({
-      date,
-      name: name.trim(),
-      symbol: symbol.trim(),
-      type,
-      quantity: Number(quantity),
-      price: Number(price),
-      fee: Number(fee) || 0,
-      note: note.trim(),
-    });
+    setSubmitting(true);
+    try {
+      await onSubmit({
+        date,
+        name: name.trim(),
+        symbol: symbol.trim(),
+        type,
+        quantity: Number(quantity),
+        price: Number(price),
+        fee: Number(fee) || 0,
+        note: note.trim(),
+      });
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   const feeRateText = feeConfig.freeCommission
@@ -231,8 +238,8 @@ export function TradeForm({ initial, title, submitLabel, onSubmit }: Props) {
               />
             </div>
 
-            <Button type="submit" className="w-full">
-              {submitLabel}
+            <Button type="submit" className="w-full" disabled={submitting}>
+              {submitting ? "저장 중..." : submitLabel}
             </Button>
           </form>
         </CardContent>

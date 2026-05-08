@@ -1,6 +1,60 @@
 import { Trade, TradeType } from "./types";
 
-const KEY = "stock-diary-trades";
+// === API client ===
+
+export async function getTrades(): Promise<Trade[]> {
+  try {
+    const res = await fetch("/api/trades", { cache: "no-store" });
+    if (!res.ok) return [];
+    const data = (await res.json()) as { trades?: Trade[] };
+    return data.trades ?? [];
+  } catch {
+    return [];
+  }
+}
+
+export async function getTrade(id: string): Promise<Trade | null> {
+  try {
+    const res = await fetch(`/api/trades/${encodeURIComponent(id)}`, {
+      cache: "no-store",
+    });
+    if (!res.ok) return null;
+    return (await res.json()) as Trade;
+  } catch {
+    return null;
+  }
+}
+
+export async function addTrade(
+  input: Omit<Trade, "id" | "createdAt">,
+): Promise<void> {
+  await fetch("/api/trades", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+}
+
+export async function updateTrade(
+  id: string,
+  input: Omit<Trade, "id" | "createdAt">,
+): Promise<void> {
+  await fetch(`/api/trades/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+}
+
+export async function deleteTrade(id: string): Promise<void> {
+  await fetch(`/api/trades/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+  });
+}
+
+// === Legacy localStorage helpers (for one-time migration only) ===
+
+const LEGACY_KEY = "stock-diary-trades";
 
 interface RawTrade {
   id?: unknown;
@@ -25,12 +79,11 @@ function asNumber(v: unknown, fallback = 0): number {
   return typeof v === "number" && Number.isFinite(v) ? v : fallback;
 }
 
-function migrate(t: RawTrade): Trade {
+function migrateLegacy(t: RawTrade): Trade {
   const noteParts = [t.note, t.reason, t.emotion]
     .map((v) => asString(v).trim())
     .filter(Boolean);
   const type: TradeType = t.type === "sell" ? "sell" : "buy";
-
   return {
     id: asString(t.id, crypto.randomUUID()),
     date: asString(t.date, new Date().toISOString().slice(0, 10)),
@@ -45,51 +98,20 @@ function migrate(t: RawTrade): Trade {
   };
 }
 
-export function getTrades(): Trade[] {
+export function getLocalTrades(): Trade[] {
   if (typeof window === "undefined") return [];
-  const raw = window.localStorage.getItem(KEY);
+  const raw = window.localStorage.getItem(LEGACY_KEY);
   if (!raw) return [];
   try {
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
-    return parsed.map(migrate);
+    return (parsed as RawTrade[]).map(migrateLegacy);
   } catch {
     return [];
   }
 }
 
-export function saveTrades(trades: Trade[]): void {
-  window.localStorage.setItem(KEY, JSON.stringify(trades));
-}
-
-export function addTrade(input: Omit<Trade, "id" | "createdAt">): Trade {
-  const newTrade: Trade = {
-    ...input,
-    id: crypto.randomUUID(),
-    createdAt: new Date().toISOString(),
-  };
-  const trades = getTrades();
-  trades.push(newTrade);
-  saveTrades(trades);
-  return newTrade;
-}
-
-export function deleteTrade(id: string): void {
-  const trades = getTrades().filter((t) => t.id !== id);
-  saveTrades(trades);
-}
-
-export function getTrade(id: string): Trade | null {
-  return getTrades().find((t) => t.id === id) ?? null;
-}
-
-export function updateTrade(
-  id: string,
-  input: Omit<Trade, "id" | "createdAt">,
-): void {
-  const trades = getTrades();
-  const idx = trades.findIndex((t) => t.id === id);
-  if (idx === -1) return;
-  trades[idx] = { ...trades[idx], ...input };
-  saveTrades(trades);
+export function clearLocalTrades(): void {
+  if (typeof window === "undefined") return;
+  window.localStorage.removeItem(LEGACY_KEY);
 }
