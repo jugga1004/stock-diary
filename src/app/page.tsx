@@ -133,9 +133,16 @@ export default function Home() {
     <main className="container mx-auto max-w-5xl p-4 md:p-6 space-y-6">
       <header className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">📓 주식일기</h1>
-        <Link href="/trades/new">
-          <Button>+ 거래 추가</Button>
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link href="/settings">
+            <Button variant="outline" size="sm">
+              설정
+            </Button>
+          </Link>
+          <Link href="/trades/new">
+            <Button>+ 거래 추가</Button>
+          </Link>
+        </div>
       </header>
 
       <section className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -357,13 +364,20 @@ export default function Home() {
                         {formatKRW(t.quantity * t.price)}
                       </TableCell>
                       <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDelete(t.id)}
-                        >
-                          삭제
-                        </Button>
+                        <div className="flex gap-1 justify-end">
+                          <Link href={`/trades/${t.id}/edit`}>
+                            <Button variant="ghost" size="sm">
+                              수정
+                            </Button>
+                          </Link>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDelete(t.id)}
+                          >
+                            삭제
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}

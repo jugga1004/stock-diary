@@ -78,3 +78,18 @@ export function deleteTrade(id: string): void {
   const trades = getTrades().filter((t) => t.id !== id);
   saveTrades(trades);
 }
+
+export function getTrade(id: string): Trade | null {
+  return getTrades().find((t) => t.id === id) ?? null;
+}
+
+export function updateTrade(
+  id: string,
+  input: Omit<Trade, "id" | "createdAt">,
+): void {
+  const trades = getTrades();
+  const idx = trades.findIndex((t) => t.id === id);
+  if (idx === -1) return;
+  trades[idx] = { ...trades[idx], ...input };
+  saveTrades(trades);
+}
