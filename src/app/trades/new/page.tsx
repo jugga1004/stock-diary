@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { addTrade } from "@/lib/storage";
 import { TradeType } from "@/lib/types";
+import { calculateFee } from "@/lib/fee";
+import { formatKRW } from "@/lib/portfolio";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -30,7 +32,18 @@ export default function NewTradePage() {
   const [quantity, setQuantity] = useState("");
   const [price, setPrice] = useState("");
   const [fee, setFee] = useState("");
+  const [feeEdited, setFeeEdited] = useState(false);
   const [note, setNote] = useState("");
+
+  const feeBreakdown = useMemo(
+    () => calculateFee(type, Number(quantity) || 0, Number(price) || 0),
+    [type, quantity, price],
+  );
+
+  useEffect(() => {
+    if (feeEdited) return;
+    setFee(feeBreakdown.total > 0 ? String(feeBreakdown.total) : "");
+  }, [feeBreakdown.total, feeEdited]);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -136,7 +149,18 @@ export default function NewTradePage() {
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="fee">수수료 (원)</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="fee">수수료 (원)</Label>
+                {feeEdited && (
+                  <button
+                    type="button"
+                    className="text-xs text-blue-600 hover:underline"
+                    onClick={() => setFeeEdited(false)}
+                  >
+                    자동 계산으로 되돌리기
+                  </button>
+                )}
+              </div>
               <Input
                 id="fee"
                 type="number"
@@ -144,9 +168,29 @@ export default function NewTradePage() {
                 min="0"
                 step="any"
                 value={fee}
-                onChange={(e) => setFee(e.target.value)}
+                onChange={(e) => {
+                  setFee(e.target.value);
+                  setFeeEdited(true);
+                }}
                 placeholder="0"
               />
+              {feeBreakdown.total > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  {feeEdited ? "자동 계산값: " : "자동 계산: "}
+                  {type === "buy" ? (
+                    <>수수료 {formatKRW(feeBreakdown.commission)}</>
+                  ) : (
+                    <>
+                      수수료 {formatKRW(feeBreakdown.commission)} + 거래세{" "}
+                      {formatKRW(feeBreakdown.tax)} ={" "}
+                      {formatKRW(feeBreakdown.total)}
+                    </>
+                  )}
+                  <span className="ml-1 opacity-70">
+                    (수수료 0.015% / 매도 거래세 0.18% 기준)
+                  </span>
+                </p>
+              )}
             </div>
 
             <div className="space-y-1.5">
